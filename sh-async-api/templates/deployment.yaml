@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sh-async-api.fullname" . }}-sh-async-api
+  labels:
+    app: sh-async-api
+  {{- include "sh-async-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.shAsyncApi.replicas }}
+  selector:
+    matchLabels:
+      aadpodidbinding: vault
+      app: sh-async-api
+    {{- include "sh-async-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        aadpodidbinding: vault
+        app: sh-async-api
+      {{- include "sh-async-api.selectorLabels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: VAR1
+              name: {{ include "sh-async-api.fullname" . }}-my-secret-vars
+        - name: AZURE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: VAR2
+              name: {{ include "sh-async-api.fullname" . }}-my-secret-vars
+        - name: AZURE_TENANT_ID
+          valueFrom:
+            secretKeyRef:
+              key: VAR2
+              name: {{ include "sh-async-api.fullname" . }}-my-secret-vars
+        - name: QUARKUS_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: VAR2
+              name: {{ include "sh-async-api.fullname" . }}-my-secret-vars
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.shAsyncApi.shAsyncApi.image.repository }}:{{ .Values.shAsyncApi.shAsyncApi.image.tag
+          | default .Chart.AppVersion }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: sh-async-api
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources: {{- toYaml .Values.shAsyncApi.shAsyncApi.resources | nindent 10 }}
+        securityContext: {{- toYaml .Values.shAsyncApi.shAsyncApi.containerSecurityContext
+          | nindent 10 }}
+        volumeMounts:
+        - mountPath: /app/secrets
+          name: shared-data
+        - mountPath: /tmp
+          name: tmp-data
+      initContainers:
+      - args: {{- toYaml .Values.shAsyncApi.vaultAgentAuth.args | nindent 8 }}
+        env:
+        - name: VAULT_ADDR
+          value: {{ quote .Values.shAsyncApi.vaultAgentAuth.env.vaultAddr }}
+        - name: VAULT_CACERT
+          value: {{ quote .Values.shAsyncApi.vaultAgentAuth.env.vaultCacert }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.shAsyncApi.vaultAgentAuth.image.repository }}:{{ .Values.shAsyncApi.vaultAgentAuth.image.tag
+          | default .Chart.AppVersion }}
+        name: vault-agent-auth
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/vault/
+          name: config
+        - mountPath: /etc/secrets
+          name: shared-data
+        - mountPath: /etc/ssl/certs
+          name: ssl-certs
+      nodeSelector: {{- toYaml .Values.shAsyncApi.nodeSelector | nindent 8 }}
+      securityContext: {}
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - configMap:
+          items:
+          - key: vault-agent-config.hcl
+            path: vault-agent-config.hcl
+        name: config
+      - emptyDir: {}
+        name: shared-data
+      - emptyDir: {}
+        name: tmp-data
+      - hostPath:
+          path: /etc/ssl/certs
+        name: ssl-secrets

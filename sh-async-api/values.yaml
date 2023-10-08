@@ -1,0 +1,113 @@
+batchJob:
+  backoffLimit: 4
+  pi:
+    image:
+      repository: perl
+      tag: 5.34.0
+cronJob:
+  hello:
+    image:
+      repository: busybox
+      tag: "1.28"
+    imagePullPolicy: IfNotPresent
+  schedule: '* * * * *'
+fluentdElasticsearch:
+  fluentdElasticsearch:
+    image:
+      repository: quay.io/fluentd_elasticsearch/fluentd
+      tag: v2.5.2
+    resources:
+      limits:
+        memory: 200Mi
+      requests:
+        cpu: 100m
+        memory: 200Mi
+kubernetesClusterDomain: cluster.local
+myConfig:
+  dummyconfigmapkey: dummyconfigmapvalue
+  myConfigProperties:
+    health:
+      healthProbeBindAddress: "8081"
+    metrics:
+      bindAddress: 127.0.0.1:8080
+myConfigProps:
+  myProp1: "1"
+  myProp2: val 1
+  myProp3: "true"
+  myvalYaml: |-
+    apiVersion: clickhouse.altinity.com/v1
+    kind: ClickHouseInstallationTemplate
+    metadata:
+      name: default-oneperhost-pod-template
+    spec:
+      templates:
+        podTemplates:
+          - name: default-oneperhost-pod-template
+            distribution: "OnePerHost"
+mySecretCa:
+  caCrt: ""
+mySecretVars:
+  elasticFoobarHunter123MeowtownVerify: ""
+  str: ""
+  var1: ""
+  var2: ""
+nginx:
+  ports:
+  - name: web
+    port: 80
+    targetPort: 0
+  type: ClusterIP
+pvc:
+  mySamplePvClaim:
+    storageClass: manual
+    storageLimit: 5Gi
+    storageRequest: 3Gi
+shAsyncApi:
+  nodeSelector:
+    region: neu
+    type: user-node
+  ports:
+  - port: 8080
+    targetPort: 8080
+  replicas: 1
+  shAsyncApi:
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - all
+      privileged: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+    image:
+      repository: poc-registry.net/api
+      tag: 1.0.0
+    resources:
+      limits:
+        cpu: "4"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 1Gi
+  type: clusterIP
+  vaultAgentAuth:
+    args:
+    - agent
+    - -config=/etc/vault/vault-agent-config.hcl
+    - -log-level=debug
+    env:
+      vaultAddr: https://vaut.com
+      vaultCacert: /etc/ssl/certs/ca-certificates.crt
+    image:
+      repository: container-registry.net/vault
+      tag: 1.4.0
+web:
+  nginx:
+    image:
+      repository: registry.k8s.io/nginx-slim
+      tag: "0.8"
+  replicas: 2
+  volumeClaims:
+    www:
+      requests:
+        storage: 1Gi
